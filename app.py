@@ -1,10 +1,21 @@
+# app.py
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import bcrypt
 
+# -----------------------------
+# Basic App Setup
+# -----------------------------
 app = Flask(__name__)
-app.config.from_object('config')
+app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# -----------------------------
+# Database & Login Manager
+# -----------------------------
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -17,8 +28,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     email = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())  
     orders = db.relationship('Order', backref='user', lazy=True)
-
     def set_password(self, password):
         self.password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
@@ -29,6 +40,29 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     products = db.relationship('Product', backref='category', lazy=True)
+
+@app.route('/cart/delete/<int:cart_item_id>', methods=['POST'])
+@login_required
+def delete_cart_item(cart_item_id):
+    cart_item = CartItem.query.get_or_404(cart_item_id)
+    
+    if cart_item.user_id != current_user.id:
+        flash("You don't have permission to remove this item.")
+        return redirect(url_for('view_cart'))
+    
+    db.session.delete(cart_item)
+    db.session.commit()
+    flash("Item removed from cart.")
+    return redirect(url_for('view_cart'))
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    if not is_admin():
+        flash("Access denied.")
+        return redirect(url_for('home'))
+    users = User.query.all()
+    return render_template('admin_users.html', users=users)
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -73,6 +107,7 @@ def is_admin():
 # Routes
 # -----------------------------
 @app.route('/')
+@login_required
 def home():
     products = Product.query.all()
     return render_template('index.html', products=products)
@@ -110,8 +145,6 @@ def login():
             return redirect(url_for('home'))
 
         flash("Invalid username or password.")
-        return redirect(url_for('login'))
-
     return render_template('login.html')
 
 @app.route('/logout')

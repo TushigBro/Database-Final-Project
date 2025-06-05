@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block title %}Admin - Manage Users{% endblock %}
+{% block content %}
+<h2>Registered Users</h2>
+<table class="table table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Registration Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email or '-' }}</td>
+            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '-' }}</td>
+            <td>
+                <!-- Optional: Add edit/delete buttons -->
+                <span class="text-muted">[Coming soon]</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

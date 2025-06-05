@@ -1,4 +1,6 @@
-from app import db, Category, Product
+# seed.py
+
+from app import app, db, Category, Product
 
 with app.app_context():
     db.create_all()
@@ -20,3 +22,5 @@ with app.app_context():
         ]
         db.session.add_all(products)
         db.session.commit()
+
+    print("✅ Database seeded successfully.")
